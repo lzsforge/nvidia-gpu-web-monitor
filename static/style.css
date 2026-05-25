@@ -1,0 +1,236 @@
+:root {
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-main: #333333;
+    --text-muted: #777777;
+    --primary: #4CAF50;
+    --primary-hover: #45a049;
+    --danger: #f44336;
+    --danger-hover: #d32f2f;
+    --border-radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #2c3e50;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    font-size: 24px;
+    margin: 0;
+}
+
+.logout-btn {
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: var(--danger-hover);
+}
+
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.modal-content button {
+    width: 100%;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.modal-content button:hover {
+    background-color: var(--primary-hover);
+}
+
+.error-msg {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 15px;
+    margin: 20px 40px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.gpu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    padding: 20px 40px;
+}
+
+.gpu-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.gpu-card:hover {
+    transform: translateY(-2px);
+}
+
+.gpu-header {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.gpu-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.gpu-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.gpu-stat span.label {
+    color: var(--text-muted);
+}
+
+.gpu-stat span.value {
+    font-weight: 500;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    height: 8px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.fan-control {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.fan-control h4 {
+    margin-bottom: 10px;
+    font-size: 15px;
+    color: #2c3e50;
+}
+
+.fan-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.fan-slider-container input[type="range"] {
+    flex-grow: 1;
+}
+
+.fan-slider-container span {
+    min-width: 45px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-group button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.btn-set {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-set:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-auto {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-auto:hover {
+    background-color: #1976D2;
+}

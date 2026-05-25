@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA GPU Monitor</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>请输入 Auth Key</h2>
+            <input type="text" id="auth-key-input" placeholder="Auth Key">
+            <button onclick="saveAuthKey()">保存并登录</button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" style="display: none;">
+        <header>
+            <h1>NVIDIA GPU 监控控制台</h1>
+            <button onclick="logout()" class="logout-btn">注销</button>
+        </header>
+        
+        <div id="error-message" class="error-msg" style="display: none;"></div>
+        
+        <div id="gpu-container" class="gpu-grid">
+            <!-- GPU cards will be injected here -->
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

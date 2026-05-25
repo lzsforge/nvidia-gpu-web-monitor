@@ -1,0 +1,21 @@
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Config file containing the auth key
+config.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo

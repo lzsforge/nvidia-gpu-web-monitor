@@ -1,0 +1,16 @@
+[project]
+name = "nvidia-gpu-web-monitor"
+version = "0.1.0"
+description = "A local web application to monitor NVIDIA GPU status and control fan speed."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "nvidia-ml-py",
+    "pydantic"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
