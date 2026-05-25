@@ -2,6 +2,8 @@
 
 这是一个本地网页程序，用于监控 NVIDIA 显卡的状态并手动控制风扇转速。
 
+![Screenshot](pic.png)
+
 ## 技术栈
 - 后端：Python、FastAPI、Uvicorn、nvidia-ml-py
 - 前端：原生 HTML、CSS、JavaScript（无复杂框架）
