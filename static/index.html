@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/style.css?v=20260526.3">
+    <link rel="stylesheet" href="/style.css?v=20260526.4">
 </head>
 <body>
     <!-- Toast Notification Container -->
@@ -54,6 +54,19 @@
                 </div>
             </div>
             <div class="header-right">
+                <!-- Theme Selector pill -->
+                <div class="theme-selector-container">
+                    <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')" title="白天模式">
+                        <i data-lucide="sun"></i>
+                    </button>
+                    <button class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')" title="夜晚模式">
+                        <i data-lucide="moon"></i>
+                    </button>
+                    <button class="theme-btn" id="theme-btn-system" onclick="setTheme('system')" title="跟随系统">
+                        <i data-lucide="laptop"></i>
+                    </button>
+                </div>
+                
                 <button onclick="logout()" class="logout-btn btn-danger">
                     <i data-lucide="log-out"></i>
                     <span>安全退出</span>
@@ -75,6 +88,6 @@
         </main>
     </div>
 
-    <script src="/app.js?v=20260526.3"></script>
+    <script src="/app.js?v=20260526.4"></script>
 </body>
 </html>

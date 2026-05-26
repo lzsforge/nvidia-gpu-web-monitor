@@ -1,6 +1,36 @@
 let authKey = '';
 let pollInterval = null;
 
+// Theme switcher management
+function setTheme(theme) {
+    const htmlEl = document.documentElement;
+    
+    // De-activate all theme buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Save to local storage
+    localStorage.setItem('theme_preference', theme);
+    
+    // Update button active state
+    const activeBtn = document.getElementById(`theme-btn-${theme}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    if (theme === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        htmlEl.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    } else {
+        htmlEl.setAttribute('data-theme', theme);
+    }
+}
+
+// Watch system preference change in real-time
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    const currentTheme = localStorage.getItem('theme_preference') || 'system';
+    if (currentTheme === 'system') {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+});
+
 // Custom Toast notification system
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
@@ -33,6 +63,10 @@ function showToast(message, type = 'success') {
 
 // Initialize app
 function init() {
+    // Apply saved theme before rendering to prevent screen flash
+    const savedTheme = localStorage.getItem('theme_preference') || 'system';
+    setTheme(savedTheme);
+
     const urlParams = new URLSearchParams(window.location.search);
     const urlKey = urlParams.get('key');
     
@@ -55,6 +89,7 @@ function init() {
         showLogin();
     }
 }
+
 
 function showLogin() {
     document.getElementById('login-modal').style.display = 'flex';
