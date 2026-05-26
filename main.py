@@ -11,6 +11,8 @@ import uvicorn
 
 CONFIG_FILE = "config.json"
 
+import re
+
 def get_hwmon_pwms():
     pwms = []
     base_dir = Path("/sys/class/hwmon")
@@ -20,7 +22,7 @@ def get_hwmon_pwms():
         name_file = hwmon / "name"
         hwmon_name = name_file.read_text().strip() if name_file.exists() else hwmon.name
         for pwm in hwmon.glob("pwm*"):
-            if "enable" not in pwm.name:
+            if re.fullmatch(r"pwm\d+", pwm.name):
                 pwms.append({
                     "path": str(pwm),
                     "label": f"{hwmon_name} - {pwm.name}"
