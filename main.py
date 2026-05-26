@@ -1,6 +1,8 @@
 import os
 import json
 import secrets
+import psutil
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -8,6 +10,22 @@ import pynvml
 import uvicorn
 
 CONFIG_FILE = "config.json"
+
+def get_hwmon_pwms():
+    pwms = []
+    base_dir = Path("/sys/class/hwmon")
+    if not base_dir.exists():
+        return pwms
+    for hwmon in base_dir.glob("hwmon*"):
+        name_file = hwmon / "name"
+        hwmon_name = name_file.read_text().strip() if name_file.exists() else hwmon.name
+        for pwm in hwmon.glob("pwm*"):
+            if "enable" not in pwm.name:
+                pwms.append({
+                    "path": str(pwm),
+                    "label": f"{hwmon_name} - {pwm.name}"
+                })
+    return pwms
 
 def load_or_create_config():
     if os.path.exists(CONFIG_FILE):
@@ -133,7 +151,32 @@ def get_status(key: str = Depends(verify_key)):
             
         gpus.append(gpu_info)
         
-    return {"gpus": gpus}
+    cpu_info = {}
+    try:
+        cpu_info["utilization"] = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory()
+        cpu_info["memory_total"] = mem.total
+        cpu_info["memory_used"] = mem.used
+        
+        temps = psutil.sensors_temperatures()
+        # Try to find a reasonable CPU temp (often coretemp, k10temp, or just take first)
+        cpu_temp = "N/A"
+        if temps:
+            for name in ["coretemp", "k10temp", "cpu_thermal"]:
+                if name in temps and len(temps[name]) > 0:
+                    cpu_temp = temps[name][0].current
+                    break
+            if cpu_temp == "N/A":
+                # Fallback to first available sensor
+                first_key = list(temps.keys())[0]
+                if temps[first_key]:
+                    cpu_temp = temps[first_key][0].current
+        cpu_info["temperature"] = cpu_temp
+        cpu_info["pwm_controllers"] = get_hwmon_pwms()
+    except Exception as e:
+        cpu_info["error"] = str(e)
+    
+    return {"gpus": gpus, "cpu": cpu_info}
 
 class FanSpeedRequest(BaseModel):
     gpu_id: int
