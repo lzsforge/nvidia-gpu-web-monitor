@@ -155,25 +155,54 @@ def get_status(key: str = Depends(verify_key)):
         
     cpu_info = {}
     try:
+        cpu_info["cores_physical"] = psutil.cpu_count(logical=False)
+        cpu_info["cores_logical"] = psutil.cpu_count(logical=True)
         cpu_info["utilization"] = psutil.cpu_percent(interval=None)
+        
+        freqs = psutil.cpu_freq(percpu=True)
+        if freqs:
+            cpu_info["frequencies"] = [{"current": round(f.current, 1), "min": round(f.min, 1), "max": round(f.max, 1)} for f in freqs]
+        elif psutil.cpu_freq():
+            # Fallback to single overall frequency if percpu is not available
+            f = psutil.cpu_freq()
+            cpu_info["frequencies"] = [{"current": round(f.current, 1), "min": round(f.min, 1), "max": round(f.max, 1)}]
+
         mem = psutil.virtual_memory()
         cpu_info["memory_total"] = mem.total
         cpu_info["memory_used"] = mem.used
         
         temps = psutil.sensors_temperatures()
-        # Try to find a reasonable CPU temp (often coretemp, k10temp, or just take first)
+        core_temps = []
         cpu_temp = "N/A"
         if temps:
+            for name, entries in temps.items():
+                for entry in entries:
+                    label = f"{name} {entry.label}".strip() if entry.label else name
+                    core_temps.append({"label": label, "current": entry.current})
+            
+            # Try to find a reasonable overall CPU temp
             for name in ["coretemp", "k10temp", "cpu_thermal"]:
                 if name in temps and len(temps[name]) > 0:
                     cpu_temp = temps[name][0].current
                     break
             if cpu_temp == "N/A":
-                # Fallback to first available sensor
                 first_key = list(temps.keys())[0]
                 if temps[first_key]:
                     cpu_temp = temps[first_key][0].current
+        
         cpu_info["temperature"] = cpu_temp
+        cpu_info["core_temperatures"] = core_temps
+        
+        # Fan RPMs
+        fans = psutil.sensors_fans()
+        fan_rpms = []
+        if fans:
+            for name, entries in fans.items():
+                for entry in entries:
+                    label = f"{name} {entry.label}".strip() if entry.label else name
+                    fan_rpms.append({"label": label, "rpm": entry.current})
+        cpu_info["fans_rpm"] = fan_rpms
+        
         cpu_info["pwm_controllers"] = get_hwmon_pwms()
     except Exception as e:
         cpu_info["error"] = str(e)

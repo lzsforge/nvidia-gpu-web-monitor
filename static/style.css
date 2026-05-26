@@ -234,3 +234,65 @@ header h1 {
 .btn-auto:hover {
     background-color: #1976D2;
 }
+
+/* Detailed Info Styles */
+.section-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin: 15px 0 8px 0;
+    letter-spacing: 0.5px;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 4px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.info-chip {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+}
+
+.info-chip .chip-label {
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-chip .chip-value {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 13px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+    .gpu-grid {
+        grid-template-columns: 1fr;
+        padding: 10px 20px;
+    }
+    
+    header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px 20px;
+        text-align: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+}
