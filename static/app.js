@@ -1,6 +1,36 @@
 let authKey = '';
 let pollInterval = null;
 
+// Custom Toast notification system
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+    toast.innerHTML = `
+        <i data-lucide="${iconName}"></i>
+        <span class="toast-text">${message}</span>
+        <button class="toast-close" onclick="const p = this.parentElement; p.classList.add('toast-fade-out'); setTimeout(() => p.remove(), 300);">&times;</button>
+    `;
+    container.appendChild(toast);
+    
+    // Instantly compile icons in the toast
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
+    // Automatically remove after 4 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.add('toast-fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
+}
+
 // Initialize app
 function init() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -8,11 +38,16 @@ function init() {
     
     if (urlKey) {
         localStorage.setItem('authKey', urlKey);
-        // Clear URL
+        // Clear URL key param
         window.history.replaceState({}, document.title, window.location.pathname);
     }
     
     authKey = localStorage.getItem('authKey');
+    
+    // Render initial static page icons (login modal elements)
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
     
     if (authKey) {
         showDashboard();
@@ -25,11 +60,22 @@ function showLogin() {
     document.getElementById('login-modal').style.display = 'flex';
     document.getElementById('dashboard').style.display = 'none';
     if (pollInterval) clearInterval(pollInterval);
+    
+    // Refresh icons inside login container
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 function showDashboard() {
     document.getElementById('login-modal').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
+    
+    // Refresh icons in dashboard shell
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
     fetchStatus();
     pollInterval = setInterval(fetchStatus, 2000);
 }
@@ -40,6 +86,9 @@ function saveAuthKey() {
         authKey = input;
         localStorage.setItem('authKey', authKey);
         showDashboard();
+        showToast("登录成功", 'success');
+    } else {
+        showToast("请输入有效的 Auth Key", 'error');
     }
 }
 
@@ -47,14 +96,29 @@ function logout() {
     localStorage.removeItem('authKey');
     authKey = '';
     showLogin();
+    showToast("已安全注销登录", 'success');
 }
 
 function showError(msg) {
     const errorDiv = document.getElementById('error-message');
+    if (!errorDiv) return;
+    
     if (msg) {
-        errorDiv.textContent = msg;
-        errorDiv.style.display = 'block';
-        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        const textSpan = errorDiv.querySelector('.error-text');
+        if (textSpan) textSpan.textContent = msg;
+        errorDiv.style.display = 'flex';
+        
+        // Render error icon
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+        
+        // Show non-blocking sliding notification
+        showToast(msg, 'error');
+        
+        setTimeout(() => { 
+            errorDiv.style.display = 'none'; 
+        }, 6000);
     } else {
         errorDiv.style.display = 'none';
     }
@@ -94,15 +158,22 @@ async function fetchStatus() {
         renderGPUs(data.gpus);
         if (data.cpu) renderCPU(data.cpu);
     } catch (e) {
-        // Error already handled in apiRequest
+        // Error is handled inside apiRequest & showError
     }
 }
 
 function renderGPUs(gpus) {
     const container = document.getElementById('gpu-container');
+    if (!container) return;
     
     if (!gpus || gpus.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #777;">未检测到 GPU</p>';
+        container.innerHTML = `
+            <div class="glass-card" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                <i data-lucide="alert-circle" style="width: 32px; height: 32px; color: var(--text-muted); margin-bottom: 12px; display: inline-block;"></i>
+                <p>未检测到 NVIDIA GPU 设备</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
         return;
     }
 
@@ -114,46 +185,57 @@ function renderGPUs(gpus) {
             card.className = 'gpu-card';
             container.appendChild(card);
             
-            // Build initial structure
+            // Build modern premium card structure
             card.innerHTML = `
                 <div class="gpu-header">
-                    <h3>GPU ${gpu.id}: ${gpu.name}</h3>
+                    <h3>
+                        <i data-lucide="cpu"></i>
+                        <span>GPU ${gpu.id}: ${gpu.name}</span>
+                    </h3>
+                    <span class="header-status-badge">
+                        <span class="status-dot"></span>
+                        <span>运行中</span>
+                    </span>
                 </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">温度</span>
+                    <span class="label"><i data-lucide="thermometer"></i>温度</span>
                     <span class="value" id="temp-${gpu.id}">N/A</span>
                 </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">利用率 (GPU)</span>
+                    <span class="label"><i data-lucide="activity"></i>利用率 (GPU)</span>
                     <span class="value" id="util-gpu-${gpu.id}">N/A</span>
                 </div>
-                <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-util-${gpu.id}" style="width: 0%"></div></div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="bar-util-${gpu.id}" style="width: 0%"></div>
+                </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">显存占用</span>
+                    <span class="label"><i data-lucide="database"></i>显存占用</span>
                     <span class="value" id="mem-${gpu.id}">N/A</span>
                 </div>
-                <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-mem-${gpu.id}" style="width: 0%"></div></div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="bar-mem-${gpu.id}" style="width: 0%"></div>
+                </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">功耗</span>
+                    <span class="label"><i data-lucide="zap"></i>功耗</span>
                     <span class="value" id="power-${gpu.id}">N/A</span>
                 </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">频率 (核心/显存)</span>
+                    <span class="label"><i data-lucide="gauge"></i>频率 (核心/显存)</span>
                     <span class="value" id="clock-${gpu.id}">N/A</span>
                 </div>
                 
                 <div class="gpu-stat">
-                    <span class="label">当前风扇转速</span>
+                    <span class="label"><i data-lucide="fan" class="spinning-fan"></i>当前风扇转速</span>
                     <span class="value" id="fan-speed-${gpu.id}">N/A</span>
                 </div>
                 
                 <div class="fan-control">
-                    <h4>风扇控制 (手动)</h4>
+                    <h4><i data-lucide="sliders"></i>风扇控制 (手动)</h4>
                     <div class="fan-slider-container">
                         <input type="range" id="fan-slider-${gpu.id}" min="20" max="100" value="50" oninput="document.getElementById('fan-slider-val-${gpu.id}').textContent = this.value + '%'">
                         <span id="fan-slider-val-${gpu.id}">50%</span>
@@ -164,43 +246,75 @@ function renderGPUs(gpus) {
                     </div>
                 </div>
             `;
+            
+            // Render newly appended icons
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         }
         
-        // Update values
-        document.getElementById(`temp-${gpu.id}`).textContent = gpu.temperature !== 'N/A' ? `${gpu.temperature} °C` : 'N/A';
+        // Update GPU dynamic stats
+        const tempVal = document.getElementById(`temp-${gpu.id}`);
+        if (tempVal) tempVal.textContent = gpu.temperature !== 'N/A' ? `${gpu.temperature} °C` : 'N/A';
         
-        document.getElementById(`util-gpu-${gpu.id}`).textContent = gpu.utilization_gpu !== 'N/A' ? `${gpu.utilization_gpu} %` : 'N/A';
-        document.getElementById(`bar-util-${gpu.id}`).style.width = gpu.utilization_gpu !== 'N/A' ? `${gpu.utilization_gpu}%` : '0%';
+        const utilVal = document.getElementById(`util-gpu-${gpu.id}`);
+        if (utilVal) utilVal.textContent = gpu.utilization_gpu !== 'N/A' ? `${gpu.utilization_gpu} %` : 'N/A';
         
+        const utilBar = document.getElementById(`bar-util-${gpu.id}`);
+        if (utilBar) utilBar.style.width = gpu.utilization_gpu !== 'N/A' ? `${gpu.utilization_gpu}%` : '0%';
+        
+        const memVal = document.getElementById(`mem-${gpu.id}`);
+        const memBar = document.getElementById(`bar-mem-${gpu.id}`);
         if (gpu.memory_used !== 'N/A' && gpu.memory_total !== 'N/A') {
             const usedMB = (gpu.memory_used / 1024 / 1024).toFixed(0);
             const totalMB = (gpu.memory_total / 1024 / 1024).toFixed(0);
             const memPercent = ((gpu.memory_used / gpu.memory_total) * 100).toFixed(1);
-            document.getElementById(`mem-${gpu.id}`).textContent = `${usedMB} MB / ${totalMB} MB (${memPercent}%)`;
-            document.getElementById(`bar-mem-${gpu.id}`).style.width = `${memPercent}%`;
+            if (memVal) memVal.textContent = `${usedMB} MB / ${totalMB} MB (${memPercent}%)`;
+            if (memBar) memBar.style.width = `${memPercent}%`;
         } else {
-            document.getElementById(`mem-${gpu.id}`).textContent = 'N/A';
-            document.getElementById(`bar-mem-${gpu.id}`).style.width = '0%';
+            if (memVal) memVal.textContent = 'N/A';
+            if (memBar) memBar.style.width = '0%';
         }
         
-        if (gpu.power_usage !== 'N/A' && gpu.power_limit !== 'N/A') {
-            document.getElementById(`power-${gpu.id}`).textContent = `${gpu.power_usage.toFixed(1)} W / ${gpu.power_limit.toFixed(1)} W`;
-        } else {
-            document.getElementById(`power-${gpu.id}`).textContent = 'N/A';
+        const powerVal = document.getElementById(`power-${gpu.id}`);
+        if (powerVal) {
+            powerVal.textContent = (gpu.power_usage !== 'N/A' && gpu.power_limit !== 'N/A') 
+                ? `${gpu.power_usage.toFixed(1)} W / ${gpu.power_limit.toFixed(1)} W` 
+                : 'N/A';
         }
         
-        if (gpu.clock_graphics !== 'N/A' && gpu.clock_memory !== 'N/A') {
-            document.getElementById(`clock-${gpu.id}`).textContent = `${gpu.clock_graphics} MHz / ${gpu.clock_memory} MHz`;
-        } else {
-            document.getElementById(`clock-${gpu.id}`).textContent = 'N/A';
+        const clockVal = document.getElementById(`clock-${gpu.id}`);
+        if (clockVal) {
+            clockVal.textContent = (gpu.clock_graphics !== 'N/A' && gpu.clock_memory !== 'N/A') 
+                ? `${gpu.clock_graphics} MHz / ${gpu.clock_memory} MHz` 
+                : 'N/A';
         }
         
-        document.getElementById(`fan-speed-${gpu.id}`).textContent = gpu.fan_speed !== 'N/A' ? `${gpu.fan_speed} %` : 'N/A';
+        const fanVal = document.getElementById(`fan-speed-${gpu.id}`);
+        if (fanVal) {
+            const currentSpeed = gpu.fan_speed !== 'N/A' ? `${gpu.fan_speed} %` : 'N/A';
+            fanVal.textContent = currentSpeed;
+            
+            // Adjust spinning speed animation based on current fan percentage
+            const fanIcon = card.querySelector('.spinning-fan');
+            if (fanIcon) {
+                if (gpu.fan_speed !== 'N/A' && gpu.fan_speed > 0) {
+                    // map 20%-100% to 4s-0.5s duration
+                    const duration = Math.max(0.5, 4 - (gpu.fan_speed / 100) * 3.5);
+                    fanIcon.style.animationDuration = `${duration}s`;
+                    fanIcon.style.display = 'inline-block';
+                } else {
+                    fanIcon.style.animationDuration = '0s';
+                }
+            }
+        }
     });
 }
 
 async function setFanSpeed(gpuId) {
-    const speed = parseInt(document.getElementById(`fan-slider-${gpuId}`).value, 10);
+    const slider = document.getElementById(`fan-slider-${gpuId}`);
+    if (!slider) return;
+    const speed = parseInt(slider.value, 10);
     
     try {
         const res = await apiRequest('/api/fan_speed', {
@@ -208,10 +322,10 @@ async function setFanSpeed(gpuId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gpu_id: gpuId, speed_percent: speed })
         });
-        alert(res.message || "设置成功");
-        fetchStatus(); // immediate update
+        showToast(res.message || "风扇转速设定成功", 'success');
+        fetchStatus();
     } catch (e) {
-        // error shown in UI by apiRequest
+        // Errors are automatically formatted inside apiRequest and showError
     }
 }
 
@@ -222,16 +336,16 @@ async function setAutoFan(gpuId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gpu_id: gpuId })
         });
-        alert(res.message || "恢复自动成功");
+        showToast(res.message || "风扇控制已成功恢复自动(Auto)", 'success');
         fetchStatus();
     } catch (e) {
-        // error shown in UI
+        // Errors are handled internally
     }
 }
 
 function renderCPU(cpu) {
     const container = document.getElementById('cpu-container');
-    if (!cpu || cpu.error) return;
+    if (!container || !cpu || cpu.error) return;
 
     let card = document.getElementById('cpu-card');
     if (!card) {
@@ -240,40 +354,50 @@ function renderCPU(cpu) {
         card.className = 'gpu-card';
         container.appendChild(card);
         
-        // Static structure
+        // Premium static structure
         card.innerHTML = `
             <div class="gpu-header">
-                <h3>系统 & CPU监控 
-                    <span id="cpu-core-info" style="font-size:12px; color:#777; font-weight:normal; margin-left:10px;"></span>
+                <h3>
+                    <i data-lucide="server"></i>
+                    <span>系统 &amp; CPU 监控</span>
+                    <span id="cpu-core-info" style="font-size: 11px; color: var(--text-secondary); font-weight: normal; margin-left: 8px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 8px;"></span>
                 </h3>
+                <span class="header-status-badge">
+                    <span class="status-dot" style="background-color: var(--secondary);"></span>
+                    <span>监控中</span>
+                </span>
             </div>
             
             <div class="gpu-stat">
-                <span class="label">总体温度</span>
+                <span class="label"><i data-lucide="thermometer"></i>总体温度</span>
                 <span class="value" id="cpu-total-temp">N/A</span>
             </div>
             
             <div class="gpu-stat">
-                <span class="label">总体利用率</span>
+                <span class="label"><i data-lucide="activity"></i>总体利用率</span>
                 <span class="value" id="cpu-total-util">N/A</span>
             </div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpu-util-bar" style="width: 0%"></div></div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="cpu-util-bar" style="width: 0%"></div>
+            </div>
             
             <div class="gpu-stat">
-                <span class="label">内存占用</span>
+                <span class="label"><i data-lucide="database"></i>内存占用</span>
                 <span class="value" id="cpu-mem-text">N/A</span>
             </div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpu-mem-bar" style="width: 0%"></div></div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="cpu-mem-bar" style="width: 0%"></div>
+            </div>
             
             <div id="cpu-freq-container"></div>
             <div id="cpu-temp-container"></div>
             <div id="cpu-fan-container"></div>
             
             <div class="fan-control">
-                <h4>CPU 风扇控制 (PWM)</h4>
-                <div class="gpu-stat" style="margin-bottom: 10px;">
-                    <span class="label">选择控制设备</span>
-                    <select id="cpu-pwm-select" onchange="saveCPUPWM()" style="max-width: 180px; padding: 4px;"></select>
+                <h4><i data-lucide="sliders"></i>CPU 风扇控制 (PWM)</h4>
+                <div class="gpu-stat" style="margin-bottom: 12px;">
+                    <span class="label"><i data-lucide="settings"></i>选择控制设备</span>
+                    <select id="cpu-pwm-select" onchange="saveCPUPWM()"></select>
                 </div>
                 <div class="fan-slider-container">
                     <input type="range" id="cpu-fan-slider" min="20" max="100" value="50" oninput="document.getElementById('cpu-fan-slider-val').textContent = this.value + '%'">
@@ -286,21 +410,30 @@ function renderCPU(cpu) {
             </div>
         `;
 
+        // Render CPU card icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
         // Populate dropdown only once
         const select = document.getElementById('cpu-pwm-select');
         if (select && cpu.pwm_controllers) {
             if (cpu.pwm_controllers.length === 0) {
                 select.add(new Option('--- 未检测到可控风扇 ---', ''));
                 select.disabled = true;
-                document.getElementById('cpu-fan-slider').disabled = true;
-                document.querySelector('#cpu-card .btn-set').disabled = true;
-                document.querySelector('#cpu-card .btn-auto').disabled = true;
+                const fanSlider = document.getElementById('cpu-fan-slider');
+                if (fanSlider) fanSlider.disabled = true;
+                const btnSet = card.querySelector('.btn-set');
+                if (btnSet) btnSet.disabled = true;
+                const btnAuto = card.querySelector('.btn-auto');
+                if (btnAuto) btnAuto.disabled = true;
             } else {
-                select.add(new Option('--- 未选择 ---', ''));
+                select.add(new Option('--- 请选择设备 ---', ''));
                 cpu.pwm_controllers.forEach(pwm => {
                     select.add(new Option(pwm.label, pwm.path));
                 });
-                // load saved
+                
+                // Load previously saved path
                 const savedPWM = localStorage.getItem('cpu_pwm_path');
                 if (savedPWM) select.value = savedPWM;
             }
@@ -308,23 +441,33 @@ function renderCPU(cpu) {
     }
     
     // Update dynamic fields
-    document.getElementById('cpu-core-info').textContent = cpu.cores_physical ? `${cpu.cores_physical} 核 ${cpu.cores_logical} 线程` : '';
-    document.getElementById('cpu-total-temp').textContent = cpu.temperature !== 'N/A' ? `${cpu.temperature} °C` : 'N/A';
-    document.getElementById('cpu-total-util').textContent = cpu.utilization !== undefined ? `${cpu.utilization} %` : 'N/A';
-    document.getElementById('cpu-util-bar').style.width = cpu.utilization !== undefined ? `${cpu.utilization}%` : '0%';
+    const coreInfo = document.getElementById('cpu-core-info');
+    if (coreInfo) coreInfo.textContent = cpu.cores_physical ? `${cpu.cores_physical}C / ${cpu.cores_logical}T` : '';
     
+    const totalTemp = document.getElementById('cpu-total-temp');
+    if (totalTemp) totalTemp.textContent = cpu.temperature !== 'N/A' ? `${cpu.temperature} °C` : 'N/A';
+    
+    const totalUtil = document.getElementById('cpu-total-util');
+    if (totalUtil) totalUtil.textContent = cpu.utilization !== undefined ? `${cpu.utilization} %` : 'N/A';
+    
+    const utilBar = document.getElementById('cpu-util-bar');
+    if (utilBar) utilBar.style.width = cpu.utilization !== undefined ? `${cpu.utilization}%` : '0%';
+    
+    const memText = document.getElementById('cpu-mem-text');
+    const memBar = document.getElementById('cpu-mem-bar');
     if (cpu.memory_used && cpu.memory_total) {
         const usedGB = (cpu.memory_used / 1024 / 1024 / 1024).toFixed(1);
         const totalGB = (cpu.memory_total / 1024 / 1024 / 1024).toFixed(1);
         const memPercent = ((cpu.memory_used / cpu.memory_total) * 100).toFixed(1);
-        document.getElementById('cpu-mem-text').textContent = `${usedGB} GB / ${totalGB} GB (${memPercent}%)`;
-        document.getElementById('cpu-mem-bar').style.width = `${memPercent}%`;
+        if (memText) memText.textContent = `${usedGB} GB / ${totalGB} GB (${memPercent}%)`;
+        if (memBar) memBar.style.width = `${memPercent}%`;
     }
 
     // Build Frequencies Grid
     let freqHtml = '';
+    let shouldUpdateFreq = false;
     if (cpu.frequencies && cpu.frequencies.length > 0) {
-        freqHtml = `<div class="section-title">CPU 频率</div><div class="info-grid">`;
+        freqHtml = `<div class="section-title"><i data-lucide="zap" style="width:13px;height:13px;color:var(--secondary)"></i>CPU 频率</div><div class="info-grid">`;
         cpu.frequencies.forEach((f, idx) => {
             let lbl = cpu.frequencies.length === 1 ? '核心频率' : `核心 ${idx}`;
             freqHtml += `
@@ -334,13 +477,16 @@ function renderCPU(cpu) {
                 </div>`;
         });
         freqHtml += `</div>`;
+        shouldUpdateFreq = true;
     }
-    document.getElementById('cpu-freq-container').innerHTML = freqHtml;
+    const freqContainer = document.getElementById('cpu-freq-container');
+    if (freqContainer && shouldUpdateFreq) freqContainer.innerHTML = freqHtml;
 
     // Build Core Temps Grid
     let tempHtml = '';
+    let shouldUpdateTemp = false;
     if (cpu.core_temperatures && cpu.core_temperatures.length > 0) {
-        tempHtml = `<div class="section-title">传感器温度</div><div class="info-grid">`;
+        tempHtml = `<div class="section-title"><i data-lucide="thermometer" style="width:13px;height:13px;color:var(--secondary)"></i>传感器温度</div><div class="info-grid">`;
         cpu.core_temperatures.forEach(t => {
             tempHtml += `
                 <div class="info-chip">
@@ -349,13 +495,16 @@ function renderCPU(cpu) {
                 </div>`;
         });
         tempHtml += `</div>`;
+        shouldUpdateTemp = true;
     }
-    document.getElementById('cpu-temp-container').innerHTML = tempHtml;
+    const tempContainer = document.getElementById('cpu-temp-container');
+    if (tempContainer && shouldUpdateTemp) tempContainer.innerHTML = tempHtml;
 
     // Build Fan RPMs Grid
     let fanHtml = '';
+    let shouldUpdateFan = false;
     if (cpu.fans_rpm && cpu.fans_rpm.length > 0) {
-        fanHtml = `<div class="section-title">风扇当前转速</div><div class="info-grid">`;
+        fanHtml = `<div class="section-title"><i data-lucide="fan" style="width:13px;height:13px;color:var(--secondary)"></i>风扇当前转速</div><div class="info-grid">`;
         cpu.fans_rpm.forEach(f => {
             fanHtml += `
                 <div class="info-chip">
@@ -364,8 +513,15 @@ function renderCPU(cpu) {
                 </div>`;
         });
         fanHtml += `</div>`;
+        shouldUpdateFan = true;
     }
-    document.getElementById('cpu-fan-container').innerHTML = fanHtml;
+    const fanContainer = document.getElementById('cpu-fan-container');
+    if (fanContainer && shouldUpdateFan) fanContainer.innerHTML = fanHtml;
+    
+    // Redraw dynamic icons inside new innerHTML grids
+    if (window.lucide && (shouldUpdateFreq || shouldUpdateTemp || shouldUpdateFan)) {
+        window.lucide.createIcons();
+    }
 }
 
 function saveCPUPWM() {
@@ -376,31 +532,46 @@ function saveCPUPWM() {
 }
 
 async function setCPUFanSpeed() {
-    const pwmPath = document.getElementById('cpu-pwm-select').value;
-    if (!pwmPath) return alert('请先选择风扇(PWM)设备');
-    const speed = parseInt(document.getElementById('cpu-fan-slider').value, 10);
+    const select = document.getElementById('cpu-pwm-select');
+    if (!select) return;
+    const pwmPath = select.value;
+    if (!pwmPath) return showToast('请先选择风扇(PWM)设备', 'error');
+    
+    const slider = document.getElementById('cpu-fan-slider');
+    if (!slider) return;
+    const speed = parseInt(slider.value, 10);
+    
     try {
         const res = await apiRequest('/api/cpu/fan_speed', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pwm_path: pwmPath, speed_percent: speed })
         });
-        alert(res.message || "设置成功");
-    } catch (e) {}
+        showToast(res.message || "CPU风扇转速设定成功", 'success');
+        fetchStatus();
+    } catch (e) {
+        // Handled internally
+    }
 }
 
 async function setAutoCPUFan() {
-    const pwmPath = document.getElementById('cpu-pwm-select').value;
-    if (!pwmPath) return alert('请先选择风扇(PWM)设备');
+    const select = document.getElementById('cpu-pwm-select');
+    if (!select) return;
+    const pwmPath = select.value;
+    if (!pwmPath) return showToast('请先选择风扇(PWM)设备', 'error');
+    
     try {
         const res = await apiRequest('/api/cpu/fan_auto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pwm_path: pwmPath })
         });
-        alert(res.message || "恢复自动成功");
-    } catch (e) {}
+        showToast(res.message || "CPU风扇已成功恢复自动模式", 'success');
+        fetchStatus();
+    } catch (e) {
+        // Handled internally
+    }
 }
 
-// Start
+// Start Application
 init();

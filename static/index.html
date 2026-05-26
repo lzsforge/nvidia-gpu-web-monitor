@@ -3,32 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NVIDIA GPU Monitor</title>
+    <title>NVIDIA GPU & System Monitor</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
     <!-- Login Modal -->
     <div id="login-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2>请输入 Auth Key</h2>
-            <input type="text" id="auth-key-input" placeholder="Auth Key">
-            <button onclick="saveAuthKey()">保存并登录</button>
+        <div class="modal-content glass-card">
+            <div class="login-header">
+                <div class="logo-glow">
+                    <i data-lucide="cpu" class="logo-icon"></i>
+                </div>
+                <h2>NVIDIA GPU Monitor</h2>
+                <p>请输入安全访问密钥以连接到控制台</p>
+            </div>
+            
+            <div class="input-wrapper">
+                <i data-lucide="key" class="input-icon"></i>
+                <input type="password" id="auth-key-input" placeholder="请输入 Auth Key...">
+            </div>
+            
+            <button onclick="saveAuthKey()" class="btn-primary">
+                <span>保存并登录</span>
+                <i data-lucide="arrow-right"></i>
+            </button>
         </div>
     </div>
 
     <!-- Main Dashboard -->
     <div id="dashboard" style="display: none;">
-        <header>
-            <h1>NVIDIA GPU 监控控制台</h1>
-            <button onclick="logout()" class="logout-btn">注销</button>
+        <header class="main-header glass-card">
+            <div class="header-left">
+                <div class="brand">
+                    <div class="brand-logo">
+                        <i data-lucide="activity" class="brand-icon"></i>
+                    </div>
+                    <div>
+                        <h1>NVIDIA GPU &amp; CPU 监控系统</h1>
+                        <span class="sub-brand">实时硬件状态监控与风扇控制</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button onclick="logout()" class="logout-btn btn-danger">
+                    <i data-lucide="log-out"></i>
+                    <span>安全退出</span>
+                </button>
+            </div>
         </header>
         
-        <div id="error-message" class="error-msg" style="display: none;"></div>
-        
-        <div id="cpu-container" class="gpu-grid"></div>
-        <div id="gpu-container" class="gpu-grid">
-            <!-- GPU cards will be injected here -->
+        <div id="error-message" class="error-msg glass-card" style="display: none;">
+            <i data-lucide="alert-triangle"></i>
+            <span class="error-text"></span>
         </div>
+        
+        <main class="dashboard-main">
+            <!-- Systems Grid -->
+            <div id="cpu-container" class="gpu-grid"></div>
+            <div id="gpu-container" class="gpu-grid">
+                <!-- GPU cards will be injected here -->
+            </div>
+        </main>
     </div>
 
     <script src="/app.js"></script>
