@@ -8,7 +8,8 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "nvidia-ml-py",
-    "pydantic"
+    "pydantic",
+    "psutil"
 ]
 
 [build-system]
