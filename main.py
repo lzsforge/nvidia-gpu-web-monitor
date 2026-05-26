@@ -225,6 +225,51 @@ def set_fan_auto(req: FanAutoRequest, key: str = Depends(verify_key)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"恢复自动风扇控制失败: {e}。可能需要管理员/root权限。")
 
+class CPUFanSpeedRequest(BaseModel):
+    pwm_path: str
+    speed_percent: int
+
+@app.post("/api/cpu/fan_speed")
+def set_cpu_fan_speed(req: CPUFanSpeedRequest, key: str = Depends(verify_key)):
+    if req.speed_percent < 20 or req.speed_percent > 100:
+        raise HTTPException(status_code=400, detail="风扇转速百分比必须限制在 20 到 100 之间")
+    
+    try:
+        pwm_val = int((req.speed_percent / 100.0) * 255)
+        # Enable manual mode (1)
+        enable_path = req.pwm_path + "_enable"
+        if os.path.exists(enable_path):
+            with open(enable_path, "w") as f:
+                f.write("1\n")
+                
+        with open(req.pwm_path, "w") as f:
+            f.write(f"{pwm_val}\n")
+            
+        return {"status": "success", "message": f"成功将 CPU 风扇转速设置为 {req.speed_percent}%"}
+    except PermissionError:
+        raise HTTPException(status_code=500, detail="没有权限写入 hwmon。请以 root 权限运行程序。")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"设置 CPU 风扇转速失败: {e}")
+
+class CPUFanAutoRequest(BaseModel):
+    pwm_path: str
+
+@app.post("/api/cpu/fan_auto")
+def set_cpu_fan_auto(req: CPUFanAutoRequest, key: str = Depends(verify_key)):
+    try:
+        # Restore auto mode. Depending on driver, this is usually 0, 2, or 5.
+        # Most common for standard motherboards is 0 (full auto) or 2 (thermal cruise).
+        # We will write 0.
+        enable_path = req.pwm_path + "_enable"
+        if os.path.exists(enable_path):
+            with open(enable_path, "w") as f:
+                f.write("0\n")
+        return {"status": "success", "message": "成功将 CPU 风扇恢复为自动模式"}
+    except PermissionError:
+        raise HTTPException(status_code=500, detail="没有权限写入 hwmon。请以 root 权限运行程序。")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"恢复 CPU 自动风扇控制失败: {e}")
+
 # Mount static files at root
 os.makedirs("static", exist_ok=True)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
