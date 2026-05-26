@@ -239,16 +239,86 @@ function renderCPU(cpu) {
         card.id = 'cpu-card';
         card.className = 'gpu-card';
         container.appendChild(card);
+        
+        // Static structure
+        card.innerHTML = `
+            <div class="gpu-header">
+                <h3>系统 & CPU监控 
+                    <span id="cpu-core-info" style="font-size:12px; color:#777; font-weight:normal; margin-left:10px;"></span>
+                </h3>
+            </div>
+            
+            <div class="gpu-stat">
+                <span class="label">总体温度</span>
+                <span class="value" id="cpu-total-temp">N/A</span>
+            </div>
+            
+            <div class="gpu-stat">
+                <span class="label">总体利用率</span>
+                <span class="value" id="cpu-total-util">N/A</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpu-util-bar" style="width: 0%"></div></div>
+            
+            <div class="gpu-stat">
+                <span class="label">内存占用</span>
+                <span class="value" id="cpu-mem-text">N/A</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="cpu-mem-bar" style="width: 0%"></div></div>
+            
+            <div id="cpu-freq-container"></div>
+            <div id="cpu-temp-container"></div>
+            <div id="cpu-fan-container"></div>
+            
+            <div class="fan-control">
+                <h4>CPU 风扇控制 (PWM)</h4>
+                <div class="gpu-stat" style="margin-bottom: 10px;">
+                    <span class="label">选择控制设备</span>
+                    <select id="cpu-pwm-select" onchange="saveCPUPWM()" style="max-width: 180px; padding: 4px;"></select>
+                </div>
+                <div class="fan-slider-container">
+                    <input type="range" id="cpu-fan-slider" min="20" max="100" value="50" oninput="document.getElementById('cpu-fan-slider-val').textContent = this.value + '%'">
+                    <span id="cpu-fan-slider-val">50%</span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-set" onclick="setCPUFanSpeed()">应用转速</button>
+                    <button class="btn-auto" onclick="setAutoCPUFan()">恢复自动</button>
+                </div>
+            </div>
+        `;
+
+        // Populate dropdown only once
+        const select = document.getElementById('cpu-pwm-select');
+        if (select && cpu.pwm_controllers) {
+            if (cpu.pwm_controllers.length === 0) {
+                select.add(new Option('--- 未检测到可控风扇 ---', ''));
+                select.disabled = true;
+                document.getElementById('cpu-fan-slider').disabled = true;
+                document.querySelector('#cpu-card .btn-set').disabled = true;
+                document.querySelector('#cpu-card .btn-auto').disabled = true;
+            } else {
+                select.add(new Option('--- 未选择 ---', ''));
+                cpu.pwm_controllers.forEach(pwm => {
+                    select.add(new Option(pwm.label, pwm.path));
+                });
+                // load saved
+                const savedPWM = localStorage.getItem('cpu_pwm_path');
+                if (savedPWM) select.value = savedPWM;
+            }
+        }
     }
     
-    // Format memory
-    let memText = 'N/A';
-    let memPercent = '0';
+    // Update dynamic fields
+    document.getElementById('cpu-core-info').textContent = cpu.cores_physical ? `${cpu.cores_physical} 核 ${cpu.cores_logical} 线程` : '';
+    document.getElementById('cpu-total-temp').textContent = cpu.temperature !== 'N/A' ? `${cpu.temperature} °C` : 'N/A';
+    document.getElementById('cpu-total-util').textContent = cpu.utilization !== undefined ? `${cpu.utilization} %` : 'N/A';
+    document.getElementById('cpu-util-bar').style.width = cpu.utilization !== undefined ? `${cpu.utilization}%` : '0%';
+    
     if (cpu.memory_used && cpu.memory_total) {
         const usedGB = (cpu.memory_used / 1024 / 1024 / 1024).toFixed(1);
         const totalGB = (cpu.memory_total / 1024 / 1024 / 1024).toFixed(1);
-        memPercent = ((cpu.memory_used / cpu.memory_total) * 100).toFixed(1);
-        memText = `${usedGB} GB / ${totalGB} GB (${memPercent}%)`;
+        const memPercent = ((cpu.memory_used / cpu.memory_total) * 100).toFixed(1);
+        document.getElementById('cpu-mem-text').textContent = `${usedGB} GB / ${totalGB} GB (${memPercent}%)`;
+        document.getElementById('cpu-mem-bar').style.width = `${memPercent}%`;
     }
 
     // Build Frequencies Grid
@@ -265,6 +335,7 @@ function renderCPU(cpu) {
         });
         freqHtml += `</div>`;
     }
+    document.getElementById('cpu-freq-container').innerHTML = freqHtml;
 
     // Build Core Temps Grid
     let tempHtml = '';
@@ -279,6 +350,7 @@ function renderCPU(cpu) {
         });
         tempHtml += `</div>`;
     }
+    document.getElementById('cpu-temp-container').innerHTML = tempHtml;
 
     // Build Fan RPMs Grid
     let fanHtml = '';
@@ -293,74 +365,7 @@ function renderCPU(cpu) {
         });
         fanHtml += `</div>`;
     }
-
-    // Basic layout and new grids
-    card.innerHTML = `
-        <div class="gpu-header">
-            <h3>系统 & CPU监控 
-                <span style="font-size:12px; color:#777; font-weight:normal; margin-left:10px;">
-                    ${cpu.cores_physical ? (cpu.cores_physical + ' 核 ' + cpu.cores_logical + ' 线程') : ''}
-                </span>
-            </h3>
-        </div>
-        
-        <div class="gpu-stat">
-            <span class="label">总体温度</span>
-            <span class="value">${cpu.temperature !== 'N/A' ? cpu.temperature + ' °C' : 'N/A'}</span>
-        </div>
-        
-        <div class="gpu-stat">
-            <span class="label">总体利用率</span>
-            <span class="value">${cpu.utilization !== undefined ? cpu.utilization + ' %' : 'N/A'}</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${cpu.utilization !== undefined ? cpu.utilization : 0}%"></div></div>
-        
-        <div class="gpu-stat">
-            <span class="label">内存占用</span>
-            <span class="value">${memText}</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${memPercent}%"></div></div>
-        
-        ${freqHtml}
-        ${tempHtml}
-        ${fanHtml}
-        
-        <div class="fan-control">
-            <h4>CPU 风扇控制 (PWM)</h4>
-            <div class="gpu-stat" style="margin-bottom: 10px;">
-                <span class="label">选择控制设备</span>
-                <select id="cpu-pwm-select" onchange="saveCPUPWM()" style="max-width: 180px; padding: 4px;"></select>
-            </div>
-            <div class="fan-slider-container">
-                <input type="range" id="cpu-fan-slider" min="20" max="100" value="50" oninput="document.getElementById('cpu-fan-slider-val').textContent = this.value + '%'">
-                <span id="cpu-fan-slider-val">50%</span>
-            </div>
-            <div class="btn-group">
-                <button class="btn-set" onclick="setCPUFanSpeed()">应用转速</button>
-                <button class="btn-auto" onclick="setAutoCPUFan()">恢复自动</button>
-            </div>
-        </div>
-    `;
-
-    // Populate dropdown
-    const select = document.getElementById('cpu-pwm-select');
-    if (select && cpu.pwm_controllers) {
-        if (cpu.pwm_controllers.length === 0) {
-            select.add(new Option('--- 未检测到可控风扇 ---', ''));
-            select.disabled = true;
-            document.getElementById('cpu-fan-slider').disabled = true;
-            document.querySelector('#cpu-card .btn-set').disabled = true;
-            document.querySelector('#cpu-card .btn-auto').disabled = true;
-        } else {
-            select.add(new Option('--- 未选择 ---', ''));
-            cpu.pwm_controllers.forEach(pwm => {
-                select.add(new Option(pwm.label, pwm.path));
-            });
-            // load saved
-            const savedPWM = localStorage.getItem('cpu_pwm_path');
-            if (savedPWM) select.value = savedPWM;
-        }
-    }
+    document.getElementById('cpu-fan-container').innerHTML = fanHtml;
 }
 
 function saveCPUPWM() {
